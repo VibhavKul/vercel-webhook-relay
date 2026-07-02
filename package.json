@@ -1,0 +1,9 @@
+{
+  "name": "vercel-webhook-relay",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Relays Vercel deployment-succeeded webhooks for Student_Portal into a repository_dispatch event on Student_Portal_Automation.",
+  "engines": {
+    "node": ">=18"
+  }
+}
