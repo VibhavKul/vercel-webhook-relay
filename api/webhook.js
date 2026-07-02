@@ -17,15 +17,6 @@
 
 const crypto = require("crypto");
 
-// Disable Vercel's automatic body parsing so we can access the raw request
-// body — signature verification has to run against the exact bytes GitHub
-// signed, not a re-serialized JSON.parse/stringify round trip.
-module.exports.config = {
-  api: {
-    bodyParser: false,
-  },
-};
-
 const GITHUB_DISPATCH_URL =
   "https://api.github.com/repos/VibhavKul/Student_Portal_Automation/dispatches";
 
@@ -54,13 +45,20 @@ function isValidSignature(rawBody, signatureHeader, secret) {
   return crypto.timingSafeEqual(expectedBuf, receivedBuf);
 }
 
-module.exports = async function handler(req, res) {
+async function handler(req, res) {
   if (req.method !== "POST") {
     res.setHeader("Allow", "POST");
     return res.status(405).json({ error: "Method not allowed" });
   }
 
   const rawBody = await readRawBody(req);
+
+  // TEMPORARY DEBUG: confirm the raw body is actually being captured
+  // (non-empty, unmodified) before signature verification runs. Remove
+  // once signature verification is confirmed working end-to-end.
+  console.log(`[webhook] raw body length=${rawBody.length}`);
+  console.log(`[webhook] raw body preview=${rawBody.toString("utf8").slice(0, 100)}`);
+
   const signatureHeader = req.headers["x-hub-signature-256"];
   const secret = process.env.GITHUB_WEBHOOK_SECRET;
 
@@ -151,4 +149,17 @@ module.exports = async function handler(req, res) {
     console.log("[webhook] GitHub dispatch request threw an error");
     return res.status(502).json({ error: "GitHub dispatch failed" });
   }
+}
+
+// Disable Vercel's automatic body parsing so we can access the raw request
+// body — signature verification has to run against the exact bytes GitHub
+// signed, not a re-serialized JSON.parse/stringify round trip. This must be
+// attached to the same function object assigned to module.exports below —
+// setting it before module.exports is (re)assigned gets silently discarded.
+handler.config = {
+  api: {
+    bodyParser: false,
+  },
 };
+
+module.exports = handler;
